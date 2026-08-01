@@ -29,6 +29,7 @@ pnpm-debug.log*
 *.sw?
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 
 # Agent / Tooling metadata
