@@ -256,47 +256,53 @@ export default function InvoicePreviewModal({ invoice, companyInfo, onClose, onT
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
+      style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="invoice-preview-title"
     >
-      <div className="bg-white rounded-2xl shadow-modal w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-modal w-full max-w-4xl max-h-[96vh] sm:max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
         
         {/* Modal Top Action Header (No Print) */}
-        <div className="no-print px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
-            <FileText className="w-5 h-5 text-brand-400" />
-            <div>
-              <h3 id="invoice-preview-title" className="font-bold text-base leading-tight">Invoice Preview & Export</h3>
-              <p className="text-xs text-slate-400">{invoice.id} • {invoice.customerName}</p>
+        <div className="no-print px-3.5 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800 shrink-0 sticky top-0 z-30">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 pr-1">
+            <FileText className="w-5 h-5 text-brand-400 shrink-0" />
+            <div className="min-w-0">
+              <h3 id="invoice-preview-title" className="font-bold text-sm sm:text-base leading-tight truncate">Invoice Preview & Export</h3>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">{invoice.id} • {invoice.customerName}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-2 transition-colors"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors shrink-0"
               title="Print Invoice directly"
               aria-label="Print Invoice"
             >
-              <Printer className="w-4 h-4 text-slate-300" /> Print
+              <Printer className="w-4 h-4 text-slate-300 shrink-0" />
+              <span className="hidden sm:inline">Print</span>
             </button>
 
             <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}
-              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center gap-2 transition-colors shadow-md shadow-brand-600/30 disabled:opacity-70"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-md shadow-brand-600/30 disabled:opacity-70 shrink-0"
               title="Download PDF file directly to device"
               aria-label="Download PDF"
             >
               {isGeneratingPDF ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Downloading...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span className="hidden sm:inline">Downloading...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" /> Download PDF
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </>
               )}
             </button>
@@ -304,9 +310,9 @@ export default function InvoicePreviewModal({ invoice, companyInfo, onClose, onT
             <button
               onClick={onClose}
               aria-label="Close invoice preview"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-2"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 ml-0.5 sm:ml-2 min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 shrink-0" />
             </button>
           </div>
         </div>
