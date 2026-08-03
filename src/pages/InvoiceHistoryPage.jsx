@@ -15,11 +15,13 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react';
 import StatusBadge from '../components/common/StatusBadge';
+import EditableStatusBadge from '../components/invoice/EditableStatusBadge';
 import jsPDF from 'jspdf';
-import { fetchInvoicesFromSupabase, deleteInvoiceFromSupabase } from '../services/invoiceService';
+import { fetchInvoicesFromSupabase, deleteInvoiceFromSupabase, updateInvoiceStatusInSupabase } from '../services/invoiceService';
 
 // Helper to extract numeric value from invoice ID (e.g. INV-000001 -> 1, INV-000002 -> 2)
 const extractInvoiceNumber = (id) => {
@@ -48,7 +50,72 @@ export default function InvoiceHistoryPage({
   const [deletingId, setDeletingId] = useState(null);
   const [showStatementModal, setShowStatementModal] = useState(false);
 
+  // Status Change Confirmation Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingInvoiceForPaid, setPendingInvoiceForPaid] = useState(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   const itemsPerPage = 8;
+
+  // Handle Mark as Paid confirmation
+  const handleConfirmMarkAsPaid = async () => {
+    if (!pendingInvoiceForPaid) return;
+
+    const targetId = pendingInvoiceForPaid.uuid || pendingInvoiceForPaid.id;
+    setIsUpdatingStatus(true);
+
+    try {
+      await updateInvoiceStatusInSupabase(targetId, 'Paid');
+
+      setInvoices(prev => prev.map(inv => {
+        if (inv.id === pendingInvoiceForPaid.id || inv.uuid === pendingInvoiceForPaid.uuid) {
+          return { ...inv, status: 'Paid', payment_status: 'Paid' };
+        }
+        return inv;
+      }));
+
+      if (onToast) {
+        onToast('Invoice marked as Paid successfully.', 'success');
+      }
+    } catch (err) {
+      console.error('Failed to update payment status:', err);
+      if (onToast) {
+        onToast('Failed to update payment status.', 'error');
+      }
+    } finally {
+      setIsUpdatingStatus(false);
+      setShowConfirmModal(false);
+      setPendingInvoiceForPaid(null);
+    }
+  };
+
+  // Handle direct status toggle (e.g. Pending <-> Overdue)
+  const handleDirectStatusChange = async (invoice, newStatus) => {
+    const targetId = invoice.uuid || invoice.id;
+    setIsUpdatingStatus(true);
+
+    try {
+      await updateInvoiceStatusInSupabase(targetId, newStatus);
+
+      setInvoices(prev => prev.map(inv => {
+        if (inv.id === invoice.id || inv.uuid === invoice.uuid) {
+          return { ...inv, status: newStatus, payment_status: newStatus };
+        }
+        return inv;
+      }));
+
+      if (onToast) {
+        onToast(`Invoice status updated to ${newStatus}.`, 'success');
+      }
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      if (onToast) {
+        onToast('Failed to update payment status.', 'error');
+      }
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   // Load live invoices from Supabase
   const loadInvoices = useCallback(async () => {
@@ -514,7 +581,15 @@ export default function InvoiceHistoryPage({
                       </td>
 
                       <td className="py-4 px-5 text-center">
-                        <StatusBadge status={inv.status || inv.payment_status || 'Paid'} />
+                        <EditableStatusBadge
+                          status={inv.status || inv.payment_status || 'Paid'}
+                          onSelectPaid={() => {
+                            setPendingInvoiceForPaid(inv);
+                            setShowConfirmModal(true);
+                          }}
+                          onChangeStatus={(newStatus) => handleDirectStatusChange(inv, newStatus)}
+                          isUpdating={isUpdatingStatus}
+                        />
                       </td>
 
                       <td className="py-4 px-5 text-right">
@@ -758,7 +833,71 @@ export default function InvoiceHistoryPage({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* Confirm Payment Modal */}
+      {showConfirmModal && pendingInvoiceForPaid && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-card max-w-md w-full p-6 shadow-modal border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">Confirm Payment</h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Invoice #{pendingInvoiceForPaid.invoice_number || pendingInvoiceForPaid.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setPendingInvoiceForPaid(null);
+                }}
+                disabled={isUpdatingStatus}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+              Are you sure you want to mark this invoice as Paid? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setPendingInvoiceForPaid(null);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={handleConfirmMarkAsPaid}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                {isUpdatingStatus ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Processing...
+                  </>
+                ) : (
+                  'Mark as Paid'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

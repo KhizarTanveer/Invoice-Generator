@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { fetchProductsFromSupabase } from '../services/productService';
 import { saveInvoiceToSupabase, updateInvoiceInSupabase, generateNextInvoiceNumber } from '../services/invoiceService';
+import ProductSearchSelect from '../components/product/ProductSearchSelect';
 
 export default function NewInvoicePage({ 
   companyInfo, 
@@ -454,11 +455,11 @@ export default function NewInvoicePage({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-[320px] pb-24">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-                    <th className="py-3 px-3 min-w-[220px]">Select Product</th>
+                    <th className="py-3 px-3 min-w-[240px]">Select Product</th>
                     <th className="py-3 px-3 w-32">Packing</th>
                     <th className="py-3 px-3 w-20 text-center">Qty</th>
                     <th className="py-3 px-3 w-32 text-right">Trade Price (PKR)</th>
@@ -472,21 +473,14 @@ export default function NewInvoicePage({
                       
                       {/* Product Select & Custom Name Input */}
                       <td className="py-3 px-3">
-                        <select
+                        <ProductSearchSelect
+                          products={activeProducts}
                           value={row.productId}
-                          onChange={(e) => handleItemChange(idx, 'productId', e.target.value)}
+                          rowProductName={row.productName}
+                          onSelectProduct={(selectedProd) => handleItemChange(idx, 'productId', selectedProd ? selectedProd.id : '')}
                           disabled={loadingProducts || isSaving}
-                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-semibold text-slate-900 mb-1"
-                        >
-                          <option value="">
-                            {loadingProducts ? 'Loading Supabase products...' : '-- Select Product --'}
-                          </option>
-                          {activeProducts.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.packing}) - Rs. {Number(p.trade_price).toLocaleString()}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Search Product..."
+                        />
 
                         <input
                           type="text"
@@ -494,7 +488,7 @@ export default function NewInvoicePage({
                           value={row.productName}
                           onChange={(e) => handleItemChange(idx, 'productName', e.target.value)}
                           disabled={isSaving}
-                          className="w-full px-3 py-1.5 text-xs bg-slate-50/80 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium text-slate-700"
+                          className="w-full px-3 py-1.5 text-xs bg-slate-50/80 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium text-slate-700 mt-1.5"
                         />
                       </td>
 

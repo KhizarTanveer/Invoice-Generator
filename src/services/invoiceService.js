@@ -260,3 +260,54 @@ export async function deleteInvoiceFromSupabase(id) {
 
   return true;
 }
+
+/**
+ * Update payment status of an invoice in Supabase.
+ * Supports status: Paid, Pending, Overdue.
+ * Enforces security rule: Paid status is permanent and cannot be reverted.
+ */
+export async function updateInvoiceStatusInSupabase(id, status) {
+  if (!id) throw new Error('Invoice ID is required');
+
+  const validStatuses = ['Paid', 'Pending', 'Overdue'];
+  if (!validStatuses.includes(status)) {
+    throw new Error(`Invalid payment status: ${status}`);
+  }
+
+  let uuidTarget = id;
+  let queryField = 'id';
+
+  if (id.includes('-') && id.startsWith('INV-')) {
+    queryField = 'invoice_number';
+  }
+
+  // Check current status in Supabase before attempting update
+  const { data: currentInvoice, error: fetchErr } = await supabase
+    .from('invoices')
+    .select('id, payment_status')
+    .eq(queryField, id)
+    .maybeSingle();
+
+  if (fetchErr) {
+    throw new Error(fetchErr.message || 'Failed to verify current invoice status');
+  }
+
+  if (currentInvoice) {
+    if (currentInvoice.payment_status === 'Paid' && status !== 'Paid') {
+      throw new Error('Payment status is already Paid and cannot be changed back.');
+    }
+    uuidTarget = currentInvoice.id;
+  }
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ payment_status: status })
+    .eq('id', uuidTarget)
+    .select();
+
+  if (error) {
+    throw new Error(error.message || 'Failed to update payment status in Supabase');
+  }
+
+  return data && data[0] ? data[0] : null;
+}
